@@ -1,0 +1,12 @@
+__pycache__/
+flagged/
+.idea/
+.vscode/
+
+*.pyc
+test.*
+demo.py
+*.onnx
+*.pb
+*.pt
+*.pth
