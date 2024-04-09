@@ -4,18 +4,15 @@ import sys
 from loguru import logger
 
 PROJECT_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
+CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
 
-FONT_PATH = r"C:\Windows\fonts\SimHei.ttf"
-# 如果是Linux系统，字体路径如下
-if os.name == "posix":
-    FONT_PATH = r"/usr/share/fonts/dejavu/SimHei.ttf"
-
-CONFIG_PATH = os.path.join(PROJECT_DIR, "config.ini")
+FONT_PATH =os.path.join(CURRENT_PATH, "res", "SimHei.ttf")
+CONFIG_PATH = os.path.join(CURRENT_PATH, "config.ini")
 
 
 def get_config():
     if os.path.exists(CONFIG_PATH) is False:
-        raise FileNotFoundError("找不到配置文件!")
+        raise FileNotFoundError(f"找不到配置文件! {CONFIG_PATH}")
     # 读取配置文件。
     cfg = configparser.ConfigParser()
     cfg.read(CONFIG_PATH, encoding='utf-8')
@@ -39,5 +36,4 @@ if SAVE_LOG:
         os.mkdir(LOG_DIR)
     LOG_PATH = os.path.join(LOG_DIR, "log_{time}.log")
     file_log_handler = logger.add(LOG_PATH, level=level, encoding="utf-8", enqueue=False)
-
 

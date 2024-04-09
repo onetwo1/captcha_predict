@@ -308,11 +308,19 @@ class Siamese(object):
             providers = ["CPUExecutionProvider"]
         self.sess = onnxruntime.InferenceSession(onnx_path, providers=providers)
         self.input_shape = [105, 105]
+        self.fp16 = False
+        self.check_fp16()
+
+    def check_fp16(self):
+        # 检查是否为fp16
+        tensor_type = self.sess.get_inputs()[0].type
+        if tensor_type == 'tensor(float16)':
+            self.fp16 = True
 
     def sigmoid(self, x):
         return 1 / (1 + np.exp(-x))
 
-    def zhuanhuan(self, file):
+    def open_pillow(self, file):
         # 图片转换为矩阵
         if isinstance(file, np.ndarray):
             img = Image.fromarray(file)
@@ -325,7 +333,7 @@ class Siamese(object):
         return img
 
     def open_image(self, file, input_shape, nc=3):
-        out = self.zhuanhuan(file)
+        out = self.open_pillow(file)
         # 改变大小 并保证其不失真
         out = out.convert("RGB")
         h, w = input_shape
@@ -336,7 +344,10 @@ class Siamese(object):
 
     def set_img(self, lines):
         image = self.open_image(lines, self.input_shape, 3)
-        image = np.array(image).astype(np.float32) / 255.0
+        if self.fp16:
+            image = np.array(image).astype(np.float16) / 255.0
+        else:
+            image = np.array(image).astype(np.float32) / 255.0
         photo = np.expand_dims(np.transpose(image, (2, 0, 1)), 0)
         return photo
 
@@ -345,14 +356,27 @@ class Siamese(object):
         photo_2 = self.set_img(image_2)
         out = self.sess.run(None, {"x1": photo_1, "x2": photo_2})
         out = out[0]
-        # out = self.sigmoid(out)
+        out = self.sigmoid(out)
         out = out[0][0]
         return out
 
     def reason_all(self, image_1, image_2_list):
-        result = []
+        photo_1 = self.set_img(image_1)
+        photo_2_all = None
+        photo_1_all = photo_1
         for image_2 in image_2_list:
-            result.append(self.reason(image_1, image_2))
-        return result
+            photo_2 = self.set_img(image_2)
+            if photo_2_all is None:
+                photo_2_all = photo_2
+            else:
+                photo_2_all = np.concatenate((photo_2_all, photo_2))
+                photo_1_all = np.concatenate((photo_1_all, photo_1))
+        out = self.sess.run(None, {"x1": photo_1_all, "x2": photo_2_all})
+        out = out[0]
+        out = self.sigmoid(out)
+        out = out.tolist()
+        out = [i[0] for i in out]
+        return out
+
 
 

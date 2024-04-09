@@ -1,93 +1,62 @@
-import base64
-import json
+import hashlib
 from io import BytesIO
+import json
 import os
-import random
-
-import numpy as np
-from PIL import Image, ImageDraw, ImageFont
-from flask import Flask, request, render_template
-
-from plugins.yidun_icon.predict import Siamese, YOLOV5_ONNX
-from utils import FONT_PATH, GetResponse, logger
+import time
+import gradio as gr
+from PIL import Image
+from plugins.geetest4_nine.predict import NineClassify
+from utils import logger
 
 CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
-PLUGIN_NAME = "网易易盾图标点选识别"
-PLUGIN_VERSION = "1.0.1"
-PLUGIN_LABEL = "yidun_icon"
-
-model_path = os.path.join(os.path.dirname(__file__), 'model')
-icon_det_path = os.path.join(model_path, "IconDet.onnx")
-icon_siamese_path = os.path.join(model_path, "IconSiamese.onnx")
-for path in [icon_det_path, icon_siamese_path]:
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Error! 模型路径无效: '{path}'")
-yolo = YOLOV5_ONNX(onnx_path=icon_det_path, classes=['target'])
-siamese = Siamese(onnx_path=icon_siamese_path)
+PLUGIN_NAME = "极验4九宫格识别"
+PLUGIN_VERSION = "v2_fp16"
+PLUGIN_LABEL = "geetest4_nine"
 
 
-def register_predict(app: Flask, executor):
-    @app.route('/yidun/icon', methods=['POST'])
-    def yidun_icon():
-        resp = GetResponse()
-        img = request.files.get('image', None)
-        if not img:
-            resp.data = json.dumps({"code": 500, "message": "未上传图片!"})
-            return resp, 500
-        try:
-            img_data = img.read()
-            future = executor.submit(get_icon_position, img_data)
-            position, recognition_img = future.result()
-            draw_data = draw(recognition_img, position)
-            resp.data = json.dumps({
-                "code": 200,
-                "message": "识别成功!",
-                "data": {"position": position, "img": base64.b64encode(draw_data).decode()}
-            })
-            return resp, 200
-        except Exception as e:
-            logger.exception(e)
-            resp.data = json.dumps({"code": 500, "message": "识别失败!"})
-            return resp, 500
+nine_model_path = os.path.join(CURRENT_PATH, "model", "geetest4_nine_v2_fp16.onnx")
+ncls = NineClassify(nine_model_path)
 
 
-def register_page(app: Flask):
-    @app.route(f'/{PLUGIN_LABEL}')
-    def yidun_icon_page():
-        return render_template(f"{PLUGIN_LABEL}.html")
+def get_nine_position(que_data, imgs, nine_nums):
+    positions = []
+    p = {
+        0: [1, 1],
+        1: [1, 2],
+        2: [1, 3],
+        3: [2, 1],
+        4: [2, 2],
+        5: [2, 3],
+        6: [3, 1],
+        7: [3, 2],
+        8: [3, 3],
+    }
+    que_class = ncls.predict(que_data)["class"]
+    result = ncls.predict_list(imgs)
+    for item in result:
+        if item.get("class") == que_class:
+            index = item.get("index")
+            positions.append(p[index])
+    c = nine_nums - len(positions)
+    if c > 0:
+        result.sort(key=lambda x: x.get("confidence"))
+        for item in result:
+            if item.get("class") == que_class:
+                continue
+            positions.append(p[item.get("index")])
+            if len(positions) >= nine_nums:
+                break
+    elif c < 0:
+        positions = positions[:c]
+    return positions, que_class
 
 
-def register_plugin(app: Flask, executor):
-    register_predict(app, executor)
-    register_page(app)
-    logger.success("{}插件加载成功, 版本: v{}", PLUGIN_NAME, PLUGIN_VERSION)
-
-
-def get_icon_position(bg_img_data):
-    """获取图标点选坐标"""
-    recognition_img, icon_imgs = split_img(bg_img_data)
-    result = yolo.detection(recognition_img)
-    img = Image.open(BytesIO(recognition_img))
-    siamese_matrix = []
-    i = 1
-    for j, icon_data in enumerate(icon_imgs):
-        icon_img = Image.open(BytesIO(icon_data))
-        row = []
-        i += 1
-        for box in result:
-            crop_img = img.crop(box).convert("L")
-            s = siamese.reason(icon_img, crop_img)
-            row.append(s)
-            i += 1
-        siamese_matrix.append(row)
-    siamese_matrix = np.array(siamese_matrix)
-    p = []
-    for i in range(siamese_matrix.shape[0]):
-        max_index = np.argmax(siamese_matrix[i, :])
-        update_matrix(siamese_matrix, (i, max_index))
-        p.append(result[max_index])
-    points = [[int((p[i][0] + p[i][2]) / 2), int((p[i][1] + p[i][3]) / 2)] for i in range(len(p))]
-    return points, recognition_img
+def get_images(positions, imgs):
+    result = []
+    for pos in positions:
+        index = (pos[0] - 1) * 3 + (pos[1] - 1)
+        result.append(Image.open(BytesIO(imgs[index])))
+    return result
 
 
 def update_matrix(matrix, index):
@@ -97,48 +66,81 @@ def update_matrix(matrix, index):
     return matrix
 
 
-def split_img(img_data, icon_index=0):
-    img = Image.open(BytesIO(img_data))
+def split_image(image_data):
+    # 打开图像
+    img = Image.open(BytesIO(image_data))
+    # 获取图像的宽度和高度
     width, height = img.size
-    recognition_area = (0, 0, width, 160)
-    icon_area = (0, 160 + icon_index * 20, 75, 160 + (icon_index + 1) * 20)
-    recognition_img = img.crop(recognition_area)
-    f = BytesIO()
-    recognition_img.save(f, format="JPEG")
-    recognition_img = f.getvalue()
-    icon_img = img.crop(icon_area)
-    icon_num = 3
-    icon_imgs = []
-    for i in range(icon_num):
-        icon = icon_img.crop((int(75 / icon_num) * i, 0, int(75 / icon_num) * (i + 1), 20))
-        f = BytesIO()
-        icon.save(f, format="JPEG")
-        icon_imgs.append(f.getvalue())
-    return recognition_img, icon_imgs
+    # 计算每个小块的宽度和高度
+    block_width = width // 3
+    block_height = height // 3
+    # 由于保存切割后的图片
+    split_image_list = []
+
+    # 切割图像为9份
+    for i in range(3):
+        for j in range(3):
+            # 计算切割区域的坐标
+            left = j * block_width
+            top = i * block_height
+            right = (j + 1) * block_width
+            bottom = (i + 1) * block_height
+
+            # 切割图像
+            block = img.crop((left, top, right, bottom))
+            # 调整图片大小
+            block = block.resize((128, 128))
+            data = BytesIO()
+            block.save(data, format='PNG')
+            split_image_list.append(data.getvalue())
+
+    return split_image_list
 
 
-def draw(img_data, data: dict):
-    """绘制识别结果"""
-    image = Image.open(BytesIO(img_data)).convert("RGB")
-    w, h = image.size
-    draw_font = ImageDraw.Draw(image)
-    draw_box = ImageDraw.Draw(image)
-    font = ImageFont.truetype(FONT_PATH, int(w * 0.04))
-    for i, box in enumerate(data):
-        char = f"{i}."
-        x, y = box
-        box_w = int(w * 0.13)
-        box_h = int(w * 0.13)
-        length = draw_font.textlength(char, font=font)
-        text_width, text_height = length, length
-        text_bg_x1 = x - 20
-        text_bg_y1 = y - 20
-        text_bg_x2 = text_bg_x1 + text_width + 4  # 加上一些额外的空间
-        text_bg_y2 = text_bg_y1 + text_height + 4  # 加上一些额外的空间
-        draw_font.rectangle([(text_bg_x1, text_bg_y1), (text_bg_x2, text_bg_y2)], fill="black")
-        draw_font.text((x - 18, y - 18), char, fill="white", font=font)
-        draw_box.rectangle([(x - 20, y - 20), (x + box_w - 20, y + box_h - 20)], outline="blue", width=2)
-    output_buffer = BytesIO()
-    image.save(output_buffer, format="PNG")
-    output_buffer.seek(0)
-    return output_buffer.getvalue()
+def predict_captcha(img_input: Image.Image, icon_input: Image.Image, nine_nums: int):
+    t = time.time()
+    try:
+        if img_input is None:
+            raise Exception("Error! 未上传图片!")
+        if 9 < nine_nums and nine_nums <= 0:
+            raise Exception("Error! nine_nums范围错误!")
+        buf = BytesIO()
+        img_input.save(buf, format="PNG")
+        imgs = split_image(buf.getvalue())
+        positions, que_class = get_nine_position(icon_input, imgs, nine_nums)
+        imgs_output = get_images(positions, imgs)
+    except Exception as e:
+        logger.exception(e)
+        err = {"error": str(e)}
+        return img_input, err, "", f"耗时: {(time.time() - t) * 1000:.2f}ms"
+    return imgs_output, json.dumps(positions, ensure_ascii=False), que_class, f"耗时: {(time.time() - t) * 1000:.2f}ms"
+
+
+with gr.Blocks(title=f"验证码识别测试-{PLUGIN_NAME}") as demo:
+    gr.Markdown(f"## {PLUGIN_NAME}测试，模型版本: {PLUGIN_VERSION}")
+    demo_path_0 = os.path.join(CURRENT_PATH, "demo", "0072b074e4b0491fb7bcd91a4af7a748.jpg")
+    demo_path_1 = os.path.join(CURRENT_PATH, "demo", "698777432d4b6352e008a1d267329aa1.png")
+    with gr.Row():
+        icon_input = gr.Image(
+            value=demo_path_1, 
+            sources=["upload"], label="目标图片", type="pil", image_mode="RGBA", interactive=True)
+        image_input = gr.Image(
+            value=demo_path_0, 
+            sources=["upload"], label="原始图片", type="pil", image_mode="RGBA", interactive=True)
+    nine_nums = gr.Number(value=3, label="目标数量(默认为3)", interactive=True)
+    with gr.Row():
+        image_output = gr.Gallery(label="识别结果")
+        with gr.Column():
+            result_output = gr.JSON(label="识别结果")
+            result_class = gr.Textbox(placeholder="", label="识别类型", lines=1, interactive=False)
+            result_time = gr.Textbox(placeholder="", label="识别耗时", lines=1, interactive=False)
+    with gr.Row():
+        gr.ClearButton(
+            [image_input, icon_input, image_output, result_output, result_class, result_time],
+            value="清除")
+        button = gr.Button("识别测试")
+    gr.Markdown(f"[返回主页](/)")
+    button.click(predict_captcha, [image_input, icon_input, nine_nums], [image_output, result_output, result_class, result_time])
+
+
+
