@@ -3,7 +3,7 @@ import os
 import time
 import gradio as gr
 from PIL import Image, ImageDraw, ImageFont
-from plugins.geetest4_word.predict import Predict
+from .predict import Predict
 from utils import FONT_PATH, logger
 
 CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))

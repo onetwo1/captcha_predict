@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 import gradio as gr
-from plugins.yidun_space.predict import ColorClassify, YOLOV5_ONNX
+from .predict import ColorClassify, YOLOV5_ONNX
 from utils import FONT_PATH, logger
 import logging
 import jieba

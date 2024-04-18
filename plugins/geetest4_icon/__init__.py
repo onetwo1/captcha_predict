@@ -3,14 +3,13 @@ import os
 import time
 import gradio as gr
 from PIL import Image, ImageDraw, ImageFont
-from plugins.geetest4_word.predict import Predict
+from .predict import Predict
 from utils import FONT_PATH, logger
 
 CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
 PLUGIN_NAME = "极验4图标点选识别"
 PLUGIN_VERSION = "v1-3_fp16/s1_v2_fp16"
 PLUGIN_LABEL = "geetest4_icon"
-
 
 icon_path = os.path.join(CURRENT_PATH, "models", "geetest4_icon_det_v1.onnx")
 siamese_path = os.path.join(CURRENT_PATH, "models", "geetest4_icon_siamese_v3_fp16.onnx")
@@ -34,7 +33,6 @@ def get_icon_position(captcha_img_data, icon_img_list: list[Image.Image], pro=Fa
     #     center_y = (point[1] + point[3]) / 2
     #     positions.append([int(center_x), int(center_y)])
     return result
-
 
 
 def transparence2white(img):
@@ -106,17 +104,17 @@ with gr.Blocks(title=f"验证码识别测试-{PLUGIN_NAME}") as demo:
         icon_path_3 = os.path.join(CURRENT_PATH, "demo", "1_3.png")
         with gr.Row():
             icon_input_1 = gr.Image(
-                value=icon_path_1, 
+                value=icon_path_1,
                 sources=["upload"], label="目标图标-1", type="pil", image_mode="RGBA", interactive=True)
             icon_input_2 = gr.Image(
-                value=icon_path_2, 
+                value=icon_path_2,
                 sources=["upload"], label="目标图标-2", type="pil", image_mode="RGBA", interactive=True)
             icon_input_3 = gr.Image(
-                value=icon_path_3, 
+                value=icon_path_3,
                 sources=["upload"], label="目标图标-3", type="pil", image_mode="RGBA", interactive=True)
         with gr.Row():
             image_input = gr.Image(
-                value=demo_path, 
+                value=demo_path,
                 sources=["upload"], label="原始图片", type="pil", image_mode="RGBA", interactive=True)
             image_output = gr.Image(label="识别结果", type="pil")
         with gr.Row():
@@ -128,7 +126,8 @@ with gr.Blocks(title=f"验证码识别测试-{PLUGIN_NAME}") as demo:
                 value="清除")
             button = gr.Button("识别测试")
         gr.Markdown(f"[返回主页](/)")
-        button.click(predict_captcha, [image_input, icon_input_1, icon_input_2, icon_input_3], [image_output, result_output, result_time])
+        button.click(predict_captcha, [image_input, icon_input_1, icon_input_2, icon_input_3],
+                     [image_output, result_output, result_time])
     with gr.Tab("增强版"):
         demo_path_pro = os.path.join(CURRENT_PATH, "demo", "2.jpg")
         icon_path_1_pro = os.path.join(CURRENT_PATH, "demo", "2_1.png")
@@ -136,17 +135,17 @@ with gr.Blocks(title=f"验证码识别测试-{PLUGIN_NAME}") as demo:
         icon_path_3_pro = os.path.join(CURRENT_PATH, "demo", "2_3.png")
         with gr.Row():
             icon_input_1_pro = gr.Image(
-                value=icon_path_1_pro, 
+                value=icon_path_1_pro,
                 sources=["upload"], label="目标图标-1", type="pil", image_mode="RGBA", interactive=True)
             icon_input_2_pro = gr.Image(
-                value=icon_path_2_pro, 
+                value=icon_path_2_pro,
                 sources=["upload"], label="目标图标-2", type="pil", image_mode="RGBA", interactive=True)
             icon_input_3_pro = gr.Image(
-                value=icon_path_3_pro, 
+                value=icon_path_3_pro,
                 sources=["upload"], label="目标图标-3", type="pil", image_mode="RGBA", interactive=True)
         with gr.Row():
             image_input_pro = gr.Image(
-                value=demo_path_pro, 
+                value=demo_path_pro,
                 sources=["upload"], label="原始图片", type="pil", image_mode="RGBA", interactive=True)
             image_output_pro = gr.Image(label="识别结果", type="pil")
         with gr.Row():
@@ -154,11 +153,11 @@ with gr.Blocks(title=f"验证码识别测试-{PLUGIN_NAME}") as demo:
             result_time_pro = gr.Textbox(placeholder="识别耗时", label="识别耗时", lines=1, interactive=False)
         with gr.Row():
             gr.ClearButton(
-                [image_input_pro, icon_input_1_pro, icon_input_2_pro, icon_input_3_pro, image_output_pro, result_output_pro, result_time_pro],
+                [image_input_pro, icon_input_1_pro, icon_input_2_pro, icon_input_3_pro, image_output_pro,
+                 result_output_pro, result_time_pro],
                 value="清除")
             button_pro = gr.Button("识别测试")
         gr.Markdown(f"> # 注: 增强版模型不适用于普通版!")
         gr.Markdown(f"[返回主页](/)")
-        button_pro.click(predict_captcha_pro, [image_input_pro, icon_input_1_pro, icon_input_2_pro, icon_input_3_pro], [image_output_pro, result_output_pro, result_time_pro])
-
-
+        button_pro.click(predict_captcha_pro, [image_input_pro, icon_input_1_pro, icon_input_2_pro, icon_input_3_pro],
+                         [image_output_pro, result_output_pro, result_time_pro])

@@ -6,7 +6,7 @@ import os
 import random
 from PIL import Image, ImageDraw, ImageFont
 import gradio as gr
-from plugins.yidun_word.predict import OCR, YOLOV5_ONNX
+from .predict import OCR, YOLOV5_ONNX
 from utils import FONT_PATH, logger
 
 CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))

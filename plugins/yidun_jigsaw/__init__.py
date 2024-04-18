@@ -6,7 +6,7 @@ import time
 from io import BytesIO
 from PIL import Image
 import gradio as gr
-from plugins.yidun_jigsaw.predict import restore_jigsaw
+from .predict import restore_jigsaw
 from utils import logger
 
 CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))

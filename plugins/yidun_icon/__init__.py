@@ -6,7 +6,7 @@ import time
 import gradio as gr
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-from plugins.yidun_icon.predict import Siamese, YOLOV5_ONNX
+from .predict import Siamese, YOLOV5_ONNX
 from utils import FONT_PATH, logger
 
 CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))

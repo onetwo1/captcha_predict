@@ -3,11 +3,8 @@ import os
 import random
 import sys
 
-CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
-if str(CURRENT_PATH) not in sys.path:
-    sys.path.append(CURRENT_PATH)
-from image_analysis import ImageAnalysis
-from individual import Individual
+from .image_analysis import ImageAnalysis
+from .individual import Individual
 
 
 SHARED_PIECE_PRIORITY = -10

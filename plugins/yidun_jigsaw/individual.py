@@ -2,11 +2,9 @@ import os
 import sys
 import numpy as np
 
-CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
-if str(CURRENT_PATH) not in sys.path:
-    sys.path.append(CURRENT_PATH)
-import gaps_utils
-from image_analysis import ImageAnalysis
+
+from . import gaps_utils
+from .image_analysis import ImageAnalysis
 
 
 class Individual(object):

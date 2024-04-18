@@ -5,7 +5,7 @@ import os
 import time
 import gradio as gr
 from PIL import Image
-from plugins.geetest4_nine.predict import NineClassify
+from .predict import NineClassify
 from utils import logger
 
 CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))

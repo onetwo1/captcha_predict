@@ -4,13 +4,11 @@ from operator import attrgetter
 import random
 import bisect
 
-CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
-if str(CURRENT_PATH) not in sys.path:
-    sys.path.append(CURRENT_PATH)
-import gaps_utils as utils
-from crossover import Crossover
-from image_analysis import ImageAnalysis
-from individual import Individual
+
+from . import gaps_utils as utils
+from .crossover import Crossover
+from .image_analysis import ImageAnalysis
+from .individual import Individual
 
 
 def roulette_selection(population, elites=4):
