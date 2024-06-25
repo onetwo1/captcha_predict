@@ -17,7 +17,9 @@
 
 1. **文件拉取**：
     
-    - 通过`git clone`命令，请确保安装了 Git LFS
+    - ~~通过`git clone`命令，请确保安装了 Git LFS~~（Git LFS流量有限，如果不成功就尝试其他方式）
+    - [百度云盘](https://pan.baidu.com/s/18EwTDqHW5vkILL77iSSr_A) 提取码：811f
+    - [阿里云盘](https://www.alipan.com/s/uyHsdrMJeYw) 提取码：j7l2 （exe自解压文件，仅支持windows）
 
 2. **安装环境**
 
