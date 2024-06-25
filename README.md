@@ -105,4 +105,4 @@ with gr.Blocks(title=f"验证码识别测试-{PLUGIN_NAME}") as demo:
 
 本人精力有限，未来可能不会再维护项目。
 
-还原大佬们提交PR
+欢迎大佬们提交PR
