@@ -1,6 +1,5 @@
 # python 3.10.10
-Flask
-gradio==4.25.0
+rich
 jieba
 numpy
 onnxruntime
@@ -9,3 +8,7 @@ opencv_python
 opencv_python_headless
 Pillow
 fastapi
+gradio
+uvicorn
+opencv-python
+loguru
