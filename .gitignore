@@ -6,7 +6,3 @@ flagged/
 *.pyc
 test.*
 demo.py
-*.onnx
-*.pb
-*.pt
-*.pth
